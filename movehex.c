@@ -371,14 +371,15 @@ void change_cost (int x, int y, int v, int rad){
         // In case the current distance ≥ radius there is no need to add more cells to the queue
         if (cdist < rad){
             if ((curr->row & 1) == 0){
-                // Cella pari 
-                // Per ognuna delle celle adiacenti controllo che non sia stata modificata, dunque aggiorno la distanza e la metto nella coda
+                // Even cells 
+                // For all adjacent cells check if the cell was not already modified, if not modified update the distance and enqueue it
                 for (int i = 0; i < 6; i++){
                     int newr = curr->row + even[i].x;
                     int newc = curr->col + even[i].y;
                     if (newr >= 0 && newr < world.rows && newc >= 0 && newc <  world.cols){
                         if (! world.map[newr][newc].visited || world.map[newr][newc].call_number < curr_call_number){
-                            // Se l'iesimo adiacente fa parte del mondo e non e ancora stato visitato aggiorno la sua distanza, visited e lo aggiungo alla coda
+                            // If the i-th adjacent exists (in bounds) and it was not yet visited, 
+                            // update distance update visited, enqueue
                             world.map[newr][newc].visited = true;
                             world.map[newr][newc].call_number = curr_call_number;
                             world.map[newr][newc].dist = cdist;
@@ -387,14 +388,12 @@ void change_cost (int x, int y, int v, int rad){
                     }
                 }
             }else {
-                // Cella dispari
-                // stessa oprocedura cambiando vettore
+                // Odd cell => same procedure
                 for (int i = 0; i < 6; i++){
                     int newr = curr->row + odd[i].x;
                     int newc = curr->col + odd[i].y;
                     if (newr >= 0 && newr < world.rows && newc >= 0 && newc <  world.cols){
                         if (! world.map[newr][newc].visited || world.map[newr][newc].call_number < curr_call_number){
-                            // Se l'iesimo adiacente fa parte del mondo e non e ancora stato visitato aggiorno la sua distanza, visited e lo aggiungo alla coda
                             world.map[newr][newc].visited = true;
                             world.map[newr][newc].call_number = curr_call_number;
                             world.map[newr][newc].dist = cdist;
@@ -406,6 +405,7 @@ void change_cost (int x, int y, int v, int rad){
         }
     }
 
+    // Free the queue
     free(Q.cells);
 
     printf ("OK\n");
@@ -417,26 +417,27 @@ void toggle_air_route (int x1, int y1, int x2, int y2){
         return;
     } 
     if (x1 >= world.cols || y1 >= world.rows || x2 >= world.cols || y2 >= world.rows || x1 < 0 || y1 < 0 || x2 < 0 || y2 < 0){
-        // Le caselle non sono valide
+        // Invalid source/destination
         printf ("KO\n");
         return;
     }
 
-    // Non ci sono altre air route
+    // No previous air routes
     if (world.map[y1][x1].n_aroutes < 1){
-        // creo il vettore di 5 air route e inizializzo n_aroutes a 1
+        // Create vector of 5 air routes and initialise n_aroutes to 1
         world.map[y1][x1].aroutes = (route*) calloc(5, sizeof(route));
         world.map[y1][x1].aroutes[0].c = x2;
         world.map[y1][x1].aroutes[0].r = y2;
         world.map[y1][x1].n_aroutes = 1;
     } 
-    //  Ci sono gia air route 
+    
+    // If other air routes exist already
     else {
-        // Controllo se l'air route esiste già
+        // Check if the precise air rout already exists
         bool found = false;
         for (int i = 0; i < world.map[y1][x1].n_aroutes; i++){
             if (world.map[y1][x1].aroutes[i].c == x2 && world.map[y1][x1].aroutes[i].r == y2){
-                // Se esiste la rimuovo
+                // If it exists remove it and if array becomes empty free the array
                 found = true;
                 for (int j = i; j < world.map[y1][x1].n_aroutes - 1; j++){
                     world.map[y1][x1].aroutes[j] = world.map[y1][x1].aroutes[j + 1];
