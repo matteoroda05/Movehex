@@ -433,7 +433,7 @@ void toggle_air_route (int x1, int y1, int x2, int y2){
     
     // If other air routes exist already
     else {
-        // Check if the precise air rout already exists
+        // Check if the same air rout already exists
         bool found = false;
         for (int i = 0; i < world.map[y1][x1].n_aroutes; i++){
             if (world.map[y1][x1].aroutes[i].c == x2 && world.map[y1][x1].aroutes[i].r == y2){
@@ -451,51 +451,54 @@ void toggle_air_route (int x1, int y1, int x2, int y2){
             }
         }
         if (found == false){
-            // Aggiungo la air route
+            // If the same air rout doesnt exist, then add the air route
             if (world.map[y1][x1].n_aroutes == 5){
-                // Se ce ne sono gia 5 termino
+                // If 5 air route already exist print KO and return
                 printf("KO\n");
                 return;
             }
-            // Altrimenti la aggiungo
+            // Add the air route and increase n_aroutes 
             world.map[y1][x1].aroutes[world.map[y1][x1].n_aroutes].c = x2;
             world.map[y1][x1].aroutes[world.map[y1][x1].n_aroutes].r = y2;
-            
-            // Incremento il numero di air routes
             world.map[y1][x1].n_aroutes++;
         }
     }
 
-    // Azzero l'array di travelcosts
+    // Set travel cost array to 0 (the previous routes might now have a different cost due to the added/removed air route)
     tCosts.size = 0;
 
     printf("OK\n");
 }
 
 void travel_cost (int xp, int yp, int xd, int yd){
-    // Casi in cui ritorno -1 sotto
-    if (world.map == NULL){
+    
+    // Follows all cases in which travel cost prints -1 and returns
+    
+    if (world.map == NULL){ 
+        // No real world
         printf("-1\n");
         return;
     } 
     if (xp >= world.cols || yp >= world.rows || xd >= world.cols || yd >= world.rows || xp < 0 || yp < 0 || xd < 0 || yd < 0){
-        // Le caselle non sono valide
+        // Invalid cells 
         printf ("-1\n");
         return;
     }
-    if (world.map[yp][xp].cost < 1){
-        // Non si puo mai uscire dalla casella di partenza
-        printf("-1\n");
-        return;
-    }
-
-    // Partemnza e arrivo coincidono
+    
+    // Start and finish coincide => print 0 and return
     if(xp == xd && yp == yd){
         printf("0\n");
         return;
     }
 
-    // Controllo tCosts
+    // Starting cell has cost == 0 (=> impossible to exit from it) => print -1 and return
+    if (world.map[yp][xp].cost < 1){
+        printf("-1\n");
+        return;
+    }
+
+
+    // Check tCosts, if the exact cell source-destination is found print the previously found result
     for (int i = 0; i < tCosts.size; i++){
         if (tCosts.travelp[i].xp == xp && tCosts.travelp[i].yp == yp && tCosts.travelp[i].xd == xd && tCosts.travelp[i].yd == yd){
             printf("%d\n", tCosts.travelp[i].cost);
@@ -503,12 +506,13 @@ void travel_cost (int xp, int yp, int xd, int yd){
         }
     }
     
-    // Aggiungo a tCosts
+    // Add the cell combination to tCosts
     int TCindex;
     if (tCosts.size < 100){
         TCindex = tCosts.size;
         tCosts.size++;
     }else {
+        // Since in most input cases tested for the number of consecutive travel costs is less than 100 if it exceeds 100 we simply put all in 0
         TCindex = 0;      
     }
     tCosts.travelp[TCindex].xp = xp;
@@ -517,14 +521,15 @@ void travel_cost (int xp, int yp, int xd, int yd){
     tCosts.travelp[TCindex].yd = yd;
     tCosts.travelp[TCindex].cost = 0;
 
+    // Increase current call number
     curr_call_number++;
     
-    // Dijksatra
-    // Inizializzo l'heap
+    // Dijkstra
+    // Initialise heap
     newheap ();
     H.heapsize = 0;
     
-    // Inizializzo il nodo di partenza
+    // Initialise starting cell
     world.map[yp][xp].dist = 0;
     world.map[yp][xp].call_number = curr_call_number;
     world.map[yp][xp].visited = false;
@@ -534,20 +539,20 @@ void travel_cost (int xp, int yp, int xd, int yd){
     cell* curr;
 
     while (H.heapsize > 0){ 
-        // Finche c'e un heap controllo gli adiacenti (e le rotte aeree) e modifico di conseguenza l'heap
+        // Until the heap exists check the adjacent and the air routes and add them to heap if possible
         curr = heapMin ();
         curr->visited = true;
         curr->call_number = curr_call_number;
         int cdist = curr->dist;
 
-        // Prima di operare sui successori controllo che il minimo corrente sia raggiungibile 
+        // Before operating on the successors, check if the current minimum is reachable, if not print -1, free heap and return 
         if (cdist == -1){
-            // Se il minimo non e raggiungibile stampo -1 faccio la free dell''heap e ritorno
             printf("-1\n");
             tCosts.travelp[TCindex].cost = -1; 
             return;
         }
-        // Se curr e l'elemento di arrivo ho trovato la distanza minima
+
+        // If curr is destination the minimum distance has been found
         if (curr->row == yd && curr->col == xd){
             printf("%d\n", cdist);
             tCosts.travelp[TCindex].cost = cdist;
@@ -556,10 +561,10 @@ void travel_cost (int xp, int yp, int xd, int yd){
 
         int ccost = curr->cost;
         int ndis = cdist + ccost;
-        // Controllo + modifica distanza + heapify degli adiacenti
+        // Do the following on adjacent: check > modify distance > add to heap
         if (ccost > 0){
             if ((curr->row & 1) == 0){
-                // Cella pari
+                // Even cell
                 for (int i = 0; i < 6; i++){
                     int newr = curr->row + even[i].x;
                     int newc = curr->col + even[i].y;
@@ -568,8 +573,7 @@ void travel_cost (int xp, int yp, int xd, int yd){
                     }
                 }
             }else {
-                // Cella dispari
-                // stessa oprocedura cambiando vettore
+                // Odd cell
                 for (int i = 0; i < 6; i++){
                     int newr = curr->row + odd[i].x;
                     int newc = curr->col + odd[i].y;
@@ -580,7 +584,7 @@ void travel_cost (int xp, int yp, int xd, int yd){
             }
         }
 
-        // Controllo + modifica distanza + heapify delle rotte aeree
+        // Do the following on air route connections: check > modify distance > add to heap
         if (curr->n_aroutes > 0 && ccost > 0){
             for (int i = 0; i < curr->n_aroutes; i++){
                 int newr = curr->aroutes[i].r;
@@ -588,7 +592,9 @@ void travel_cost (int xp, int yp, int xd, int yd){
                 addToHeap (&world.map[newr][newc], ndis);
             }
         }
-    }    
+    }   
+    
+    // If the cell has not been found print -1 
     printf("-1\n");
     tCosts.travelp[TCindex].cost = -1;
 }
